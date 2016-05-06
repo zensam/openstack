@@ -1,0 +1,90 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+nodes = [
+ { :hostname => 'node0',     :instance_name => 'ops-0',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
+ { :hostname => 'node1',     :instance_name => 'ops-1',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
+ # { :hostname => 'node2',     :instance_name => 'ops-2',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
+ # { :hostname => 'node3',     :instance_name => 'ops-3',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
+
+]
+
+# Prepare groups and hosts distribution for Ansible
+groups ||= Hash.new
+nodes.each do |node|
+  groups[node[:group]] ||= Array.new
+  groups[node[:group]].push(node[:hostname])
+end
+
+VAGRANTFILE_API_VERSION = "2"
+
+config_aws_region = "ap-northeast-1"
+config_aws_availability_zone = "ap-northeast-1a"
+config_aws_security_groups = ["launch-wizard-1"]
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "dummy"
+  config.vm.box_url = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
+
+  # Create virtual machines
+  nodes.each do |node|
+    config.vm.define node[:hostname] do |node_config|
+      node_config.ssh.pty = true
+      node_config.vm.provider :aws do |aws, override|
+        aws.access_key_id = ENV['AWS_ACCESS_KEY_ID']
+        aws.secret_access_key = ENV['AWS_SECRET_KEY_ID']
+        aws.keypair_name = ENV['AWS_VAGRANT_KEYPAIR_NAME']
+        override.ssh.username = node[:username]
+        override.ssh.private_key_path = ENV['AWS_VAGRANT_PRIVATE_KEY_PATH']
+        aws.region = config_aws_region
+        aws.availability_zone = config_aws_availability_zone
+        aws.ami = node[:ami]
+        aws.instance_type = node[:instance_type]
+        aws.security_groups = config_aws_security_groups
+        aws.tags = {'Name' => node[:instance_name]}
+
+        # aws.block_device_mapping = [
+        #   {
+        #     'DeviceName' => '/dev/sda1',
+        #     'Ebs.VolumeSize' => 30,
+        #     'Ebs.DeleteOnTermination' => true,
+        #     'Ebs.VolumeType' => 'gp2'
+        #   },
+        #   # Swap
+        #   {
+        #     'DeviceName' => '/dev/sdb',
+        #     'Ebs.VolumeSize' => 8,
+        #     'Ebs.DeleteOnTermination' => true,
+        #     'Ebs.VolumeType' => 'gp2'
+        #   }
+        # ]
+
+        if node[:eip] != "none"
+          aws.elastic_ip = node[:eip]
+        end
+
+      end
+      node_config.vm.synced_folder ".", "/vagrant", disabled: true
+      node_config.vm.provision "shell",
+        inline: "sudo apt-get -y update && sudo apt-get -y install language-pack-en"
+      # node_config.vm.provision "shell",
+      #   inline: "sudo apt-get -y install language-pack-en"
+#      node_config.vm.provision "shell",
+#        inline: "/usr/bin/sudo /usr/bin/printf '\n172.31.2.250 cfhub.devops.ea.intropro.com\n' >> /etc/hosts"
+#      node_config.vm.provision "shell",
+#        inline: "/usr/bin/sudo /bin/sed -i 's/Defaults.*requiretty.*$/#Defaults requiretty/' /etc/sudoers"
+#      node_config.vm.provision "shell",
+#        inline: "/usr/bin/sudo /bin/sed -i -r 's/^#?(PermitRootLogin|PasswordAuthentication) no/\1 yes/' /etc/ssh/sshd_config"
+##      node_config.vm.provision "shell",
+##        inline: "/usr/bin/sudo /sbin/service sshd restart"
+##      node_config.vm.provision "shell",
+##        inline: "/usr/bin/sudo /bin/systemctl restart sshd"
+##      node_config.vm.provision "shell",
+##       inline: "/usr/bin/sudo /bin/systemctl stop iptables"
+#      node_config.vm.provision :shell, :path => "scripts/ssh_root.sh", :args => "#{node[:group]}"
+      # node_config.vm.provision :shell, :path => "scripts/set_hostname.sh", :args => "#{node[:hostname]} #{DOMAIN_NAME} #{node[:group]}"
+      # node_config.vm.provision :shell, :path => "scripts/install_cfengine_enterprise.sh", :args => "#{node[:group]}"
+      # node_config.vm.provision :shell, :path => "scripts/bootstrap_cfengine.sh", :args => "#{cfhub_ip}"
+    end
+  end
+end
