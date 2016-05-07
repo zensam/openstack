@@ -4,7 +4,7 @@
 nodes = [
  { :hostname => 'node0',     :instance_name => 'ops-0',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
  { :hostname => 'node1',     :instance_name => 'ops-1',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
- # { :hostname => 'node2',     :instance_name => 'ops-2',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
+ { :hostname => 'node2',     :instance_name => 'ops-2',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
  # { :hostname => 'node3',     :instance_name => 'ops-3',    :instance_type => 't2.micro',   :ami => 'ami-a21529cc', :username => 'ubuntu',  :eip => 'none',     :group => 'nodes'},
 
 ]
@@ -65,10 +65,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       end
       node_config.vm.synced_folder ".", "/vagrant", disabled: true
-      node_config.vm.provision "shell",
-        inline: "sudo apt-get -y update && sudo apt-get -y install language-pack-en"
       # node_config.vm.provision "shell",
-      #   inline: "sudo apt-get -y install language-pack-en"
+      #   inline: "sudo apt-get -y update"
+      node_config.vm.provision "shell",
+        inline: "sudo apt-get -y install language-pack-en"
 #      node_config.vm.provision "shell",
 #        inline: "/usr/bin/sudo /usr/bin/printf '\n172.31.2.250 cfhub.devops.ea.intropro.com\n' >> /etc/hosts"
 #      node_config.vm.provision "shell",
